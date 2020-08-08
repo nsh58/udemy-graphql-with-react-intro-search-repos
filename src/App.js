@@ -4,25 +4,37 @@ import { Query } from 'react-apollo'
 import client from './client.js'
 import { SEARCH_REPOSITORIES } from './graphql'
 
-const VARIABLES = {
+const DEFAULT_STATE = {
   first: 5,
   after: null,
   last: null,
   before: null,
   query: "フロントエンドエンジニア"
-}
+};
 
 class App extends Component {
   constructor(props) {
     super(props)
-    this.state = VARIABLES
+    this.state = DEFAULT_STATE
+
+    this.handleChange = this.handleChange.bind(this)
   }
+
+  handleChange (event) {
+    this.setState({
+      ...DEFAULT_STATE,
+      query: event.target.value
+    })
+  };
 
   render () {
     const { query, first, last, before, after } = this.state
     return (
       <React.StrictMode>
         <ApolloProvider client={client}>
+          <form onSubmit={this.handleSubmit}>
+            <input value={query} onChange={this.handleChange}></input>
+          </form>
           <Query
             query={SEARCH_REPOSITORIES}
             variables={{query, first, last, before, after}}
@@ -32,8 +44,28 @@ class App extends Component {
                 if (loading) return 'Loading...'
                 if (error) return `Error ${error.message}`
 
-                console.log({data});
-                return <div></div>
+              const search = data.search
+              const repositoryCount = search.repositoryCount
+              const repositoryUnit = repositoryCount === 1 ? 'Repository' : 'Repositories'
+              const title = `Github Repositories Search Results - ${repositoryCount} ${repositoryUnit}`
+              return (
+                <React.Fragment>
+                  <div>{title}</div>
+                  <ul>
+                    {
+                      search.edges.map(edge => {
+                        const node = edge.node
+
+                        return (
+                          <li key={node.id}>
+                            <a href={node.url} target="_blank">{node.name}</a>
+                          </li>
+                        )
+                      })
+                    }
+                  </ul>
+                </React.Fragment>
+              )
               }
             }
 
